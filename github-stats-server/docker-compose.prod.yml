@@ -2,10 +2,10 @@ version: '3'
 
 services:
   web:
-    image: windy007008/github_stats:latest
+    image: windy007008/github_stats_ww:latest
     restart: always
     ports:
-      - "5002:5002"
+      - "5004:5004"
     user: "1000:1000"  # 使用宿主机的UID:GID
     command: ["gunicorn", 
               "--config", "gunicorn.prod.conf.py",

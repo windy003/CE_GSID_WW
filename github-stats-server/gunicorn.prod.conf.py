@@ -3,7 +3,7 @@
 import os
 
 # Server socket
-bind = "0.0.0.0:5002"
+bind = "0.0.0.0:5004"
 backlog = 2048
 
 # Worker processes
@@ -24,7 +24,7 @@ errorlog = '-'
 access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'
 
 # Process naming
-proc_name = 'github_stats'
+proc_name = 'github_stats_ww'
 
 # Server mechanics
 daemon = False
