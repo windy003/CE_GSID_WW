@@ -76,7 +76,8 @@ def clone_repository(repo_url, target_dir):
         # 使用浅克隆减少下载时间
         cmd = ['git', 'clone', '--depth', '1', repo_url, target_dir]
         print(f"Executing: {' '.join(cmd)}")
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300, 
+                              encoding='utf-8', errors='ignore')
         
         print(f"Git clone return code: {result.returncode}")
         print(f"Git clone stdout: {result.stdout}")
@@ -211,21 +212,15 @@ def analyze_repository(repo_path):
     }
     
     for root, dirs, files in os.walk(repo_path):
-        # 跳过 .git 目录
-        if '.git' in dirs:
-            dirs.remove('.git')
-        
-        # 跳过常见的非代码目录
-        dirs[:] = [d for d in dirs if not d.startswith('.') and 
+        # 跳过 .git 目录和常见的非代码目录，但保留其他隐藏目录
+        dirs[:] = [d for d in dirs if d != '.git' and 
                   d not in ['node_modules', '__pycache__', 'build', 'dist', 'target']]
         
         for file in files:
             file_path = os.path.join(root, file)
             relative_path = os.path.relpath(file_path, repo_path).replace('\\', '/')
             
-            # 跳过隐藏文件，但保留重要文件
-            if file.startswith('.'):
-                continue
+            # 不再跳过隐藏文件，允许统计 .开头的文件
             
             # 只统计文本文件
             if is_text_file(file_path):
