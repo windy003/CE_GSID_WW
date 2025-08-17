@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 import re
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
 
 # 移除缓存机制，每次都重新统计
