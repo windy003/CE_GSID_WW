@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>移动端优化测试 - 代码统计</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; margin: 0; background: #f6f8fa; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { background: white; padding: 30px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .header h1 { margin: 0 0 10px 0; color: #24292f; }
+        .header .subtitle { color: #656d76; margin: 0; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
+        .stat-card .number { font-size: 36px; font-weight: bold; color: #0969da; margin-bottom: 5px; }
+        .stat-card .label { color: #656d76; font-size: 14px; }
+        .section { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; overflow: hidden; }
+        .section-header { padding: 20px; border-bottom: 1px solid #e1e4e8; background: #f6f8fa; }
+        .section-header h2 { margin: 0; color: #24292f; font-size: 18px; }
+        .section-content { padding: 0; }
+        .folder-item, .file-item { padding: 15px 20px; border-bottom: 1px solid #e1e4e8; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; }
+        .folder-item:hover, .file-item:hover { background: #f6f8fa; }
+        .folder-item:last-child, .file-item:last-child { border-bottom: none; }
+        .item-name { flex-grow: 1; display: flex; align-items: center; gap: 8px; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; }
+        .item-stats { display: flex; gap: 20px; align-items: center; font-size: 14px; }
+        .lines-count { font-weight: 600; color: #0969da; }
+        .percentage { color: #656d76; }
+        .folder-icon, .file-icon { width: 16px; height: 16px; }
+        .folder-icon::before { content: "📁"; }
+        .file-icon::before { content: "📄"; }
+        .breadcrumb { padding: 15px 20px; background: #f6f8fa; border-bottom: 1px solid #e1e4e8; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; overflow-x: auto; white-space: nowrap; }
+        .breadcrumb a { color: #0969da; text-decoration: none; cursor: pointer; }
+        .breadcrumb a:hover { text-decoration: underline; }
+        .breadcrumb span { color: #656d76; margin: 0 5px; }
+        .file-list { min-height: 400px; }
+        .back-button { padding: 15px 20px; border-bottom: 1px solid #e1e4e8; background: #f6f8fa; cursor: pointer; transition: background 0.2s; }
+        .back-button:hover { background: #e1e4e8; }
+        .back-button .item-name { color: #0969da; font-weight: 500; }
+        .progress-bar { width: 100px; height: 6px; background: #e1e4e8; border-radius: 3px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #0969da, #54aeff); border-radius: 3px; transition: width 0.3s; }
+        .language-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; padding: 20px; }
+        .language-item { display: flex; justify-content: space-between; align-items: center; }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            .container { padding: 15px; }
+            .header { padding: 20px; }
+            .header h1 { font-size: 24px; }
+            .stats-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+            .stat-card { padding: 20px; }
+            .stat-card .number { font-size: 28px; }
+            .section-header { padding: 15px; }
+            .section-header h2 { font-size: 16px; }
+            .folder-item, .file-item { padding: 12px 15px; }
+            .item-stats { gap: 15px; font-size: 13px; }
+            .breadcrumb { padding: 12px 15px; font-size: 14px; }
+            .back-button { padding: 12px 15px; }
+            .language-stats { grid-template-columns: 1fr; gap: 10px; padding: 15px; }
+            .progress-bar { width: 80px; }
+        }
+        
+        @media (max-width: 480px) {
+            .container { padding: 10px; }
+            .header { padding: 15px; margin-bottom: 15px; }
+            .header h1 { font-size: 20px; }
+            .header .subtitle { font-size: 14px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
+            .stat-card { padding: 15px; }
+            .stat-card .number { font-size: 24px; }
+            .stat-card .label { font-size: 13px; }
+            .section { margin-bottom: 15px; }
+            .section-header { padding: 12px; }
+            .section-header h2 { font-size: 15px; }
+            .folder-item, .file-item { padding: 10px 12px; flex-wrap: wrap; }
+            .item-name { font-size: 14px; min-width: 0; }
+            .item-name span { overflow: hidden; text-overflow: ellipsis; }
+            .item-stats { gap: 10px; font-size: 12px; margin-top: 5px; width: 100%; justify-content: space-between; }
+            .breadcrumb { padding: 10px 12px; font-size: 13px; }
+            .back-button { padding: 10px 12px; }
+            .language-stats { padding: 12px; }
+            .language-item { font-size: 14px; }
+            .progress-bar { width: 60px; height: 4px; }
+            .file-list { min-height: 300px; }
+            
+            /* 触摸优化 */
+            .folder-item, .file-item, .back-button { 
+                min-height: 44px; 
+                -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+            }
+            .breadcrumb a {
+                padding: 2px 4px;
+                margin: -2px -4px;
+                border-radius: 3px;
+            }
+        }
+        
+        @media (max-width: 320px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .stat-card .number { font-size: 20px; }
+            .stat-card .label { font-size: 12px; }
+            .item-name { font-size: 13px; }
+            .item-stats { font-size: 11px; }
+            .breadcrumb { font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>示例项目/代码统计</h1>
+            <p class="subtitle">移动端优化效果演示</p>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="number">12,543</div>
+                <div class="label">总代码行数</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">89</div>
+                <div class="label">代码文件数</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">12</div>
+                <div class="label">文件类型</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">25</div>
+                <div class="label">目录数量</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <h2>文件类型分布</h2>
+            </div>
+            <div class="language-stats">
+                <div class="language-item">
+                    <span>.js</span>
+                    <span class="lines-count">5,234 行</span>
+                </div>
+                <div class="language-item">
+                    <span>.py</span>
+                    <span class="lines-count">3,421 行</span>
+                </div>
+                <div class="language-item">
+                    <span>.html</span>
+                    <span class="lines-count">2,156 行</span>
+                </div>
+                <div class="language-item">
+                    <span>.css</span>
+                    <span class="lines-count">1,732 行</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <h2>文件浏览器</h2>
+            </div>
+            <div class="section-content">
+                <div class="breadcrumb">
+                    <a>根目录</a> <span>/</span> <a>src</a> <span>/</span> <a>components</a>
+                </div>
+                <div class="file-list">
+                    <div class="back-button">
+                        <div class="item-name"><span>🔙</span><span>返回上级目录</span></div>
+                    </div>
+                    
+                    <div class="folder-item">
+                        <div class="item-name">
+                            <span class="folder-icon"></span>
+                            <span>utils</span>
+                        </div>
+                        <div class="item-stats">
+                            <span class="lines-count">1,234 行</span>
+                            <span class="percentage">9.8%</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 9.8%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="folder-item">
+                        <div class="item-name">
+                            <span class="folder-icon"></span>
+                            <span>styles</span>
+                        </div>
+                        <div class="item-stats">
+                            <span class="lines-count">856 行</span>
+                            <span class="percentage">6.8%</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 6.8%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="file-item">
+                        <div class="item-name">
+                            <span class="file-icon"></span>
+                            <span>App.js</span>
+                        </div>
+                        <div class="item-stats">
+                            <span class="lines-count">234 行</span>
+                            <span class="percentage">1.9%</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 1.9%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="file-item">
+                        <div class="item-name">
+                            <span class="file-icon"></span>
+                            <span>index.js</span>
+                        </div>
+                        <div class="item-stats">
+                            <span class="lines-count">89 行</span>
+                            <span class="percentage">0.7%</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 0.7%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="file-item">
+                        <div class="item-name">
+                            <span class="file-icon"></span>
+                            <span>very-long-filename-for-testing-mobile-display.js</span>
+                        </div>
+                        <div class="item-stats">
+                            <span class="lines-count">156 行</span>
+                            <span class="percentage">1.2%</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 1.2%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

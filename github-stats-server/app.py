@@ -66,30 +66,73 @@ def clean_all_repos():
 def clone_repository(repo_url, target_dir):
     """克隆仓库到指定目录"""
     try:
+        print(f"开始克隆仓库: {repo_url} -> {target_dir}")
+        import sys
+        sys.stdout.flush()
+        
+        # 设置环境变量确保Git可用
+        env = os.environ.copy()
+        if '/mingw64/bin' not in env.get('PATH', ''):
+            env['PATH'] = '/mingw64/bin:' + env.get('PATH', '')
+        
         # 确保目标目录不存在
         if os.path.exists(target_dir):
+            print(f"删除已存在的目录: {target_dir}")
             shutil.rmtree(target_dir)
         
         # 创建父目录
-        os.makedirs(os.path.dirname(target_dir), exist_ok=True)
+        parent_dir = os.path.dirname(target_dir)
+        print(f"创建父目录: {parent_dir}")
+        os.makedirs(parent_dir, exist_ok=True)
+        
+        # 简化Git检查 - 直接尝试使用git
+        git_cmd = 'git'
+        
+        print(f"当前PATH: {env.get('PATH', '无')}")
+        
+        try:
+            print(f"检查Git是否可用...")
+            git_version = subprocess.run([git_cmd, '--version'], 
+                                       capture_output=True, text=True, timeout=10,
+                                       env=env)
+            print(f"Git命令返回码: {git_version.returncode}")
+            
+            if git_version.returncode == 0:
+                print(f"Git版本: {git_version.stdout.strip()}")
+            else:
+                print(f"Git检查失败: {git_version.stderr}")
+                return False, f"Git检查失败: {git_version.stderr}"
+                
+        except Exception as e:
+            print(f"Git检查异常: {e}")
+            return False, f"Git检查异常: {str(e)}"
         
         # 使用浅克隆减少下载时间
-        cmd = ['git', 'clone', '--depth', '1', repo_url, target_dir]
-        print(f"Executing: {' '.join(cmd)}")
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300, 
-                              encoding='utf-8', errors='ignore')
+        cmd = [git_cmd, 'clone', '--depth', '1', repo_url, target_dir]
+        print(f"执行命令: {' '.join(cmd)}")
         
-        print(f"Git clone return code: {result.returncode}")
-        print(f"Git clone stdout: {result.stdout}")
-        print(f"Git clone stderr: {result.stderr}")
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300, 
+                              encoding='utf-8', errors='ignore', env=env)
+        
+        print(f"Git clone 返回码: {result.returncode}")
+        if result.stdout:
+            print(f"Git clone 标准输出: {result.stdout}")
+        if result.stderr:
+            print(f"Git clone 错误输出: {result.stderr}")
         
         if result.returncode == 0:
+            print(f"克隆成功，目录大小: {len(os.listdir(target_dir)) if os.path.exists(target_dir) else 0} 项")
             return True, "克隆成功"
         else:
-            return False, f"克隆失败: {result.stderr.strip()}"
+            error_msg = result.stderr.strip() if result.stderr.strip() else "未知错误"
+            print(f"克隆失败: {error_msg}")
+            return False, f"克隆失败: {error_msg}"
+            
     except subprocess.TimeoutExpired:
+        print("克隆超时")
         return False, "克隆超时"
     except Exception as e:
+        print(f"克隆异常: {str(e)}")
         return False, f"克隆异常: {str(e)}"
 
 def is_text_file(file_path):
@@ -295,52 +338,81 @@ def test_page():
     with open(os.path.join(os.path.dirname(__file__), 'test.html'), 'r', encoding='utf-8') as f:
         return f.read()
 
+@app.route('/mobile_test.html')
+def mobile_test_page():
+    """移动端优化测试页面"""
+    import os
+    with open(os.path.join(os.path.dirname(__file__), 'mobile_test.html'), 'r', encoding='utf-8') as f:
+        return f.read()
+
 @app.route('/api/stats', methods=['POST'])
 def get_repository_stats():
     """获取仓库统计信息 - 每次都重新统计"""
-    data = request.get_json()
-    if not data or 'repoUrl' not in data:
-        return jsonify({'error': '缺少仓库URL'}), 400
-    
-    repo_url = data['repoUrl']
-    owner = data.get('owner', '')
-    repo = data.get('repo', '')
-    
-    if not owner or not repo:
-        return jsonify({'error': '缺少仓库信息'}), 400
+    print("=== API /api/stats 被调用 ===")
     
     try:
+        data = request.get_json()
+        print(f"接收到的数据: {data}")
+        
+        if not data or 'repoUrl' not in data:
+            print("错误: 缺少仓库URL")
+            return jsonify({'error': '缺少仓库URL'}), 400
+        
+        repo_url = data['repoUrl']
+        owner = data.get('owner', '')
+        repo = data.get('repo', '')
+        
+        print(f"解析参数: repo_url={repo_url}, owner={owner}, repo={repo}")
+        
+        if not owner or not repo:
+            print("错误: 缺少仓库信息")
+            return jsonify({'error': '缺少仓库信息'}), 400
+        
+        print("开始处理仓库统计...")
+        
         # 每次都清理所有旧仓库
+        print("清理旧仓库...")
         clean_all_repos()
         ensure_repos_dir()
         
         # 创建临时目录
         repo_dir = os.path.join(REPOS_DIR, f"{owner}_{repo}_{int(time.time())}")
+        print(f"临时目录: {repo_dir}")
         
         # 克隆仓库
+        print("开始克隆仓库...")
         success, message = clone_repository(repo_url, repo_dir)
         if not success:
+            print(f"克隆失败: {message}")
             return jsonify({'error': f'克隆失败: {message}'}), 500
         
         # 分析代码
+        print("开始分析代码...")
         stats = analyze_repository(repo_dir)
+        print(f"分析完成: {stats['total_lines']} 行代码, {stats['total_files']} 个文件")
         
         # 立即清理临时文件
         if os.path.exists(repo_dir):
             try:
+                print("清理临时文件...")
                 shutil.rmtree(repo_dir)
-            except:
-                pass
+            except Exception as cleanup_e:
+                print(f"清理临时文件失败: {cleanup_e}")
         
         # 返回统计结果
-        return jsonify({
+        result = {
             'totalLines': stats['total_lines'],
             'totalFiles': stats['total_files'],
             'processing': False,
             'cached': False
-        })
+        }
+        print(f"返回结果: {result}")
+        return jsonify(result)
         
     except Exception as e:
+        print(f"统计异常: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': f'统计失败: {str(e)}'}), 500
 
 @app.route('/api/stats/status/<owner>/<repo>')
@@ -462,6 +534,7 @@ STATS_TEMPLATE = '''
 <html>
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ owner }}/{{ repo }} - 代码统计</title>
     <style>
         * { box-sizing: border-box; }
@@ -488,7 +561,7 @@ STATS_TEMPLATE = '''
         .folder-icon, .file-icon { width: 16px; height: 16px; }
         .folder-icon::before { content: "📁"; }
         .file-icon::before { content: "📄"; }
-        .breadcrumb { padding: 15px 20px; background: #f6f8fa; border-bottom: 1px solid #e1e4e8; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; }
+        .breadcrumb { padding: 15px 20px; background: #f6f8fa; border-bottom: 1px solid #e1e4e8; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; overflow-x: auto; white-space: nowrap; }
         .breadcrumb a { color: #0969da; text-decoration: none; cursor: pointer; }
         .breadcrumb a:hover { text-decoration: underline; }
         .breadcrumb span { color: #656d76; margin: 0 5px; }
@@ -500,6 +573,68 @@ STATS_TEMPLATE = '''
         .progress-fill { height: 100%; background: linear-gradient(90deg, #0969da, #54aeff); border-radius: 3px; transition: width 0.3s; }
         .language-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; padding: 20px; }
         .language-item { display: flex; justify-content: space-between; align-items: center; }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            .container { padding: 15px; }
+            .header { padding: 20px; }
+            .header h1 { font-size: 24px; }
+            .stats-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+            .stat-card { padding: 20px; }
+            .stat-card .number { font-size: 28px; }
+            .section-header { padding: 15px; }
+            .section-header h2 { font-size: 16px; }
+            .folder-item, .file-item { padding: 12px 15px; }
+            .item-stats { gap: 15px; font-size: 13px; }
+            .breadcrumb { padding: 12px 15px; font-size: 14px; }
+            .back-button { padding: 12px 15px; }
+            .language-stats { grid-template-columns: 1fr; gap: 10px; padding: 15px; }
+            .progress-bar { width: 80px; }
+        }
+        
+        @media (max-width: 480px) {
+            .container { padding: 10px; }
+            .header { padding: 15px; margin-bottom: 15px; }
+            .header h1 { font-size: 20px; }
+            .header .subtitle { font-size: 14px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
+            .stat-card { padding: 15px; }
+            .stat-card .number { font-size: 24px; }
+            .stat-card .label { font-size: 13px; }
+            .section { margin-bottom: 15px; }
+            .section-header { padding: 12px; }
+            .section-header h2 { font-size: 15px; }
+            .folder-item, .file-item { padding: 10px 12px; flex-wrap: wrap; }
+            .item-name { font-size: 14px; min-width: 0; }
+            .item-name span { overflow: hidden; text-overflow: ellipsis; }
+            .item-stats { gap: 10px; font-size: 12px; margin-top: 5px; width: 100%; justify-content: space-between; }
+            .breadcrumb { padding: 10px 12px; font-size: 13px; }
+            .back-button { padding: 10px 12px; }
+            .language-stats { padding: 12px; }
+            .language-item { font-size: 14px; }
+            .progress-bar { width: 60px; height: 4px; }
+            .file-list { min-height: 300px; }
+            
+            /* 触摸优化 */
+            .folder-item, .file-item, .back-button { 
+                min-height: 44px; 
+                -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+            }
+            .breadcrumb a {
+                padding: 2px 4px;
+                margin: -2px -4px;
+                border-radius: 3px;
+            }
+        }
+        
+        @media (max-width: 320px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .stat-card .number { font-size: 20px; }
+            .stat-card .label { font-size: 12px; }
+            .item-name { font-size: 13px; }
+            .item-stats { font-size: 11px; }
+            .breadcrumb { font-size: 12px; }
+        }
     </style>
 </head>
 <body>
