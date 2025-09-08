@@ -61,12 +61,44 @@ def clean_all_repos():
     if not os.path.exists(REPOS_DIR):
         return
     
+    import platform
     try:
-        # 删除整个仓库目录
-        shutil.rmtree(REPOS_DIR)
-        print("Cleaned all old repos")
+        if platform.system() == 'Windows':
+            # Windows下更温和的清理方式
+            import subprocess
+            # 使用rmdir命令强制删除
+            subprocess.run(['rmdir', '/s', '/q', REPOS_DIR], shell=True, capture_output=True)
+            print("Cleaned all old repos (Windows)")
+        else:
+            # Linux/Mac下直接删除
+            shutil.rmtree(REPOS_DIR)
+            print("Cleaned all old repos (Unix)")
     except Exception as e:
         print(f"Failed to clean repos directory: {e}")
+        # 如果清理失败，尝试清理单个目录
+        try:
+            for item in os.listdir(REPOS_DIR):
+                item_path = os.path.join(REPOS_DIR, item)
+                if os.path.isdir(item_path):
+                    clean_single_repo(item_path)
+        except Exception as e2:
+            print(f"Fallback cleanup also failed: {e2}")
+
+def clean_single_repo(repo_path):
+    """清理单个仓库目录"""
+    import platform
+    try:
+        if platform.system() == 'Windows':
+            # Windows下移除只读属性后删除
+            import stat
+            def handle_remove_readonly(func, path, exc):
+                os.chmod(path, stat.S_IWRITE)
+                func(path)
+            shutil.rmtree(repo_path, onerror=handle_remove_readonly)
+        else:
+            shutil.rmtree(repo_path)
+    except Exception as e:
+        print(f"Failed to clean single repo {repo_path}: {e}")
 
 def clone_repository(repo_url, target_dir):
     """克隆仓库到指定目录"""
@@ -249,7 +281,7 @@ def count_lines_in_file(file_path):
             except:
                 return 0
 
-def analyze_repository(repo_path):
+def analyze_repository_stats(repo_path):
     """分析仓库结构和代码行数"""
     stats = {
         'total_lines': 0,
@@ -324,10 +356,160 @@ def analyze_repository(repo_path):
     
     return stats
 
+def convert_file_types_to_languages(file_type_stats):
+    """将文件扩展名统计转换为编程语言统计"""
+    language_mapping = {
+        '.py': 'Python',
+        '.js': 'JavaScript',
+        '.ts': 'TypeScript',
+        '.jsx': 'React JSX',
+        '.tsx': 'React TSX',
+        '.java': 'Java',
+        '.c': 'C',
+        '.cpp': 'C++',
+        '.cc': 'C++',
+        '.cxx': 'C++',
+        '.h': 'C/C++ Header',
+        '.hpp': 'C++ Header',
+        '.cs': 'C#',
+        '.php': 'PHP',
+        '.rb': 'Ruby',
+        '.go': 'Go',
+        '.rs': 'Rust',
+        '.swift': 'Swift',
+        '.kt': 'Kotlin',
+        '.scala': 'Scala',
+        '.html': 'HTML',
+        '.htm': 'HTML',
+        '.css': 'CSS',
+        '.scss': 'SCSS',
+        '.sass': 'Sass',
+        '.less': 'Less',
+        '.vue': 'Vue',
+        '.xml': 'XML',
+        '.json': 'JSON',
+        '.yml': 'YAML',
+        '.yaml': 'YAML',
+        '.toml': 'TOML',
+        '.ini': 'INI',
+        '.cfg': 'Config',
+        '.conf': 'Config',
+        '.sh': 'Shell',
+        '.bash': 'Bash',
+        '.ps1': 'PowerShell',
+        '.sql': 'SQL',
+        '.r': 'R',
+        '.R': 'R',
+        '.m': 'Objective-C/MATLAB',
+        '.pl': 'Perl',
+        '.lua': 'Lua',
+        '.dart': 'Dart',
+        '.elm': 'Elm',
+        '.ex': 'Elixir',
+        '.exs': 'Elixir',
+        '.clj': 'Clojure',
+        '.hs': 'Haskell',
+        '.fs': 'F#',
+        '.ml': 'OCaml',
+        '.jl': 'Julia',
+        '.nim': 'Nim',
+        '.zig': 'Zig',
+        '.md': 'Markdown',
+        '.txt': 'Text',
+        '.log': 'Log',
+        '.gitignore': 'Git',
+        '.dockerignore': 'Docker',
+        '.dockerfile': 'Docker',
+        '无扩展名': 'Unknown'
+    }
+    
+    languages = {}
+    for ext, lines in file_type_stats.items():
+        language = language_mapping.get(ext, f"Other ({ext})")
+        if language in languages:
+            languages[language] += lines
+        else:
+            languages[language] = lines
+    
+    # 按行数排序
+    return dict(sorted(languages.items(), key=lambda x: x[1], reverse=True))
+
 @app.route('/health')
 def health_check():
     """健康检查接口"""
     return jsonify({'status': 'ok', 'message': 'GitHub Stats Server is running'})
+
+@app.route('/analyze', methods=['POST'])
+def analyze_repository():
+    """分析仓库接口 - 适配新的前端格式"""
+    try:
+        data = request.get_json()
+        print(f"接收到的分析请求: {data}")
+        
+        if not data:
+            return jsonify({'error': i18n.t('error_invalid_url')}), 400
+        
+        repo_url = data.get('repo_url', '')
+        owner = data.get('owner', '')
+        repo = data.get('repo', '')
+        
+        if not repo_url or not owner or not repo:
+            return jsonify({'error': i18n.t('error_invalid_url')}), 400
+        
+        # 生成任务ID
+        task_id = f"{owner}_{repo}_{int(time.time())}"
+        
+        # 调用现有的分析逻辑，构造和 /api/stats 相同的数据格式
+        analyze_data = {
+            'repoUrl': repo_url,
+            'owner': owner,
+            'repo': repo
+        }
+        
+        # 使用更简单的方式：直接在当前请求中处理，但设置超时
+        try:
+            # 清理旧仓库（更温和的方式）
+            print("开始清理旧仓库...")
+            clean_all_repos()
+            ensure_repos_dir()
+            
+            # 构建目标目录
+            target_dir = os.path.join(REPOS_DIR, f"{owner}_{repo}")
+            
+            print(f"准备克隆到: {target_dir}")
+            
+            # 克隆仓库
+            success = clone_repository(repo_url, target_dir)
+            if not success:
+                print(f"克隆仓库失败: {repo_url}")
+                return jsonify({'error': i18n.t('error_repo_not_found')}), 404
+            
+            print("克隆成功，开始分析...")
+            
+            # 统计代码
+            stats = analyze_repository_stats(target_dir)
+            print(f"统计完成: {stats}")
+            
+            # 生成语言统计（从文件类型统计转换）
+            languages = convert_file_types_to_languages(stats['file_type_stats'])
+            
+            # 直接返回结果
+            return jsonify({
+                'task_id': task_id,
+                'ready': True,
+                'totalLines': stats['total_lines'],
+                'totalFiles': stats['total_files'],
+                'languages': languages,
+                'message': i18n.t('analysis_complete')
+            })
+            
+        except Exception as e:
+            print(f"分析过程出错: {e}")
+            return jsonify({'error': i18n.t('error_analysis_failed')}), 500
+        
+    except Exception as e:
+        print(f"分析请求处理错误: {e}")
+        return jsonify({'error': i18n.t('error_analysis_failed')}), 500
 
 @app.route('/')
 def index():
@@ -400,7 +582,7 @@ def get_repository_stats():
         
         # 分析代码
         print("开始分析代码...")
-        stats = analyze_repository(repo_dir)
+        stats = analyze_repository_stats(repo_dir)
         print(f"分析完成: {stats['total_lines']} 行代码, {stats['total_files']} 个文件")
         
         # 立即清理临时文件
@@ -460,7 +642,7 @@ def stats_page():
                                         owner=owner, repo=repo, error=message)
         
         # 分析代码
-        stats = analyze_repository(repo_dir)
+        stats = analyze_repository_stats(repo_dir)
         
         # 立即清理临时文件
         if os.path.exists(repo_dir):

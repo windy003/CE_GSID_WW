@@ -121,6 +121,14 @@
         .input-field::placeholder {
             color: #8c959f;
         }
+        
+        .input-hint {
+            display: block;
+            font-size: 12px;
+            color: #8c959f;
+            margin-top: 4px;
+            font-style: italic;
+        }
 
         .analyze-button {
             width: 100%;
@@ -252,15 +260,10 @@
         
         <form id="analyzeForm">
             <div class="input-group">
-                <label class="input-label" for="owner">{{ t('owner_label') }}</label>
-                <input type="text" id="owner" name="owner" class="input-field" 
-                       placeholder="{{ t('owner_placeholder') }}" required>
-            </div>
-            
-            <div class="input-group">
-                <label class="input-label" for="repo">{{ t('repo_label') }}</label>
-                <input type="text" id="repo" name="repo" class="input-field" 
-                       placeholder="{{ t('repo_placeholder') }}" required>
+                <label class="input-label" for="repoUrl">{{ t('repo_url_label') }}</label>
+                <input type="url" id="repoUrl" name="repoUrl" class="input-field" 
+                       placeholder="{{ t('repo_url_placeholder') }}" required>
+                <div class="input-hint">{{ t('repo_url_hint') }}</div>
             </div>
             
             <button type="submit" class="analyze-button" id="analyzeBtn">
@@ -281,7 +284,7 @@
         // 翻译对象 (从服务器传递)
         const translations = {
             analyzing: '{{ t("analyzing") }}',
-            error_invalid_params: '{{ t("error_invalid_params") }}',
+            error_invalid_url: '{{ t("error_invalid_url") }}',
             error_repo_not_found: '{{ t("error_repo_not_found") }}',
             error_analysis_failed: '{{ t("error_analysis_failed") }}',
             total_lines: '{{ t("total_lines") }}',
@@ -294,16 +297,41 @@
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const owner = document.getElementById('owner').value.trim();
-            const repo = document.getElementById('repo').value.trim();
+            const repoUrl = document.getElementById('repoUrl').value.trim();
             
-            if (!owner || !repo) {
-                showStatus('error', translations.error_invalid_params);
+            // 验证GitHub URL并提取owner和repo
+            const parsedRepo = parseGitHubUrl(repoUrl);
+            if (!parsedRepo) {
+                showStatus('error', translations.error_invalid_url);
                 return;
             }
             
-            analyzeRepository(owner, repo);
+            analyzeRepository(parsedRepo.owner, parsedRepo.repo, repoUrl);
         });
+
+        function parseGitHubUrl(url) {
+            try {
+                // 支持多种GitHub URL格式
+                const patterns = [
+                    /^https?:\/\/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?(?:\/.*)?$/,
+                    /^git@github\.com:([^/]+)\/([^/]+?)(?:\.git)?$/,
+                    /^([^/]+)\/([^/]+)$/  // 简化格式：owner/repo
+                ];
+                
+                for (const pattern of patterns) {
+                    const match = url.match(pattern);
+                    if (match) {
+                        return {
+                            owner: match[1],
+                            repo: match[2]
+                        };
+                    }
+                }
+                return null;
+            } catch (e) {
+                return null;
+            }
+        }
 
         function showStatus(type, message) {
             statusDiv.className = `status ${type}`;
@@ -313,12 +341,13 @@
             }
         }
 
-        function analyzeRepository(owner, repo) {
+        function analyzeRepository(owner, repo, originalUrl) {
             analyzeBtn.disabled = true;
             analyzeBtn.textContent = translations.analyzing;
             showStatus('loading', translations.analyzing);
 
-            const repoUrl = `https://github.com/${owner}/${repo}`;
+            // 使用原始URL，如果没有则构造标准URL
+            const repoUrl = originalUrl && originalUrl.startsWith('http') ? originalUrl : `https://github.com/${owner}/${repo}`;
             
             fetch('/analyze', {
                 method: 'POST',
@@ -335,7 +364,11 @@
             .then(data => {
                 if (data.error) {
                     showStatus('error', data.error);
+                } else if (data.ready) {
+                    // 直接显示结果，不需要轮询
+                    showResults(data);
                 } else {
+                    // 如果需要轮询（备用方案）
                     pollForResults(data.task_id, owner, repo);
                 }
             })
