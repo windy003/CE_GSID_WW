@@ -439,6 +439,15 @@ def health_check():
     """健康检查接口"""
     return jsonify({'status': 'ok', 'message': 'GitHub Stats Server is running'})
 
+@app.route('/reload-translations')
+def reload_translations():
+    """重新加载翻译文件"""
+    try:
+        i18n.load_translations()
+        return jsonify({'status': 'ok', 'message': 'Translations reloaded successfully'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 @app.route('/analyze', methods=['POST'])
 def analyze_repository():
     """分析仓库接口 - 适配新的前端格式"""

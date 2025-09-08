@@ -1,13 +1,12 @@
 {
   "title": "GitHub Code Statistics Analyzer",
   "subtitle": "Online analysis of GitHub repository code statistics",
-  "owner_label": "GitHub Username/Organization",
-  "owner_placeholder": "e.g.: microsoft",
-  "repo_label": "Repository Name",
-  "repo_placeholder": "e.g.: vscode",
+  "repo_url_label": "GitHub Repository URL",
+  "repo_url_placeholder": "e.g.: https://github.com/microsoft/vscode",
+  "repo_url_hint": "Please enter the complete GitHub repository URL",
   "analyze_button": "Start Analysis",
   "analyzing": "Analyzing, please wait...",
-  "error_invalid_params": "Please enter a valid username and repository name",
+  "error_invalid_url": "Please enter a valid GitHub repository URL",
   "error_repo_not_found": "Repository not found or inaccessible",
   "error_analysis_failed": "Analysis failed",
   "retry_button": "Retry",
@@ -21,5 +20,12 @@
   "chinese": "中文",
   "english": "English",
   "recent_analysis": "Recent Analysis",
-  "no_recent_analysis": "No recent analysis records"
+  "no_recent_analysis": "No recent analysis records",
+  "file_structure": "File Structure",
+  "folder": "Folder",
+  "file": "File",
+  "lines": "lines",
+  "root_directory": "Root Directory",
+  "expand_folder": "Expand folder",
+  "collapse_folder": "Collapse folder"
 }

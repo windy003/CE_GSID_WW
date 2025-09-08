@@ -1,13 +1,12 @@
 {
   "title": "GitHub 代码统计分析器",
   "subtitle": "在线分析GitHub仓库的代码统计信息",
-  "owner_label": "GitHub 用户名/组织名",
-  "owner_placeholder": "例如：microsoft",
-  "repo_label": "仓库名称",
-  "repo_placeholder": "例如：vscode",
+  "repo_url_label": "GitHub仓库地址",
+  "repo_url_placeholder": "例如：https://github.com/microsoft/vscode",
+  "repo_url_hint": "请输入完整的GitHub仓库URL地址",
   "analyze_button": "开始分析",
   "analyzing": "正在分析中，请稍候...",
-  "error_invalid_params": "请输入有效的用户名和仓库名",
+  "error_invalid_url": "请输入有效的GitHub仓库URL地址",
   "error_repo_not_found": "仓库未找到或无法访问",
   "error_analysis_failed": "分析失败",
   "retry_button": "重试",
@@ -21,5 +20,12 @@
   "chinese": "中文",
   "english": "English",
   "recent_analysis": "最近分析",
-  "no_recent_analysis": "暂无分析记录"
+  "no_recent_analysis": "暂无分析记录",
+  "file_structure": "文件结构",
+  "folder": "文件夹",
+  "file": "文件",
+  "lines": "行",
+  "root_directory": "根目录",
+  "expand_folder": "展开文件夹",
+  "collapse_folder": "收缩文件夹"
 }

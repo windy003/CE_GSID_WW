@@ -30,13 +30,22 @@ class I18n:
             os.makedirs(translations_dir)
             self.create_default_translations(translations_dir)
         
+        # 清空现有翻译，重新加载
+        self.translations.clear()
+        
         # 加载翻译文件
         for filename in os.listdir(translations_dir):
             if filename.endswith('.json'):
                 locale = filename[:-5]  # 移除.json扩展名
                 filepath = os.path.join(translations_dir, filename)
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    self.translations[locale] = json.load(f)
+                try:
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        self.translations[locale] = json.load(f)
+                        print(f"Loaded translations for {locale}: {len(self.translations[locale])} keys")
+                except Exception as e:
+                    print(f"Error loading translation file {filepath}: {e}")
+        
+        print(f"Available locales: {list(self.translations.keys())}")
     
     def create_default_translations(self, translations_dir):
         """创建默认的翻译文件"""
