@@ -4,11 +4,41 @@ class GitHubStatsWidget {
     this.currentRepo = null;
     this.widget = null;
     this.autoHideTimer = null;
+    this.locale = 'zh';
+    this.messages = {
+      'zh': {
+        'codeStats': '代码统计',
+        'analyzing': '正在统计中...',
+        'linesOfCode': '行代码',
+        'clickForDetails': '点击查看详情',
+        'fetchFailed': '获取失败',
+        'clickToRetry': '点击重试',
+        'configureServer': '请先配置服务器',
+        'clickToConfig': '点击插件图标设置',
+        'statsTimeout': '统计超时，请稍后重试',
+        'fetchStatsFailed': '获取统计失败',
+        'alertConfigServer': '请先点击插件图标配置服务器地址'
+      },
+      'en': {
+        'codeStats': 'Code Stats',
+        'analyzing': 'Analyzing...',
+        'linesOfCode': 'lines of code',
+        'clickForDetails': 'Click for details',
+        'fetchFailed': 'Fetch failed',
+        'clickToRetry': 'Click to retry',
+        'configureServer': 'Please configure server',
+        'clickToConfig': 'Click extension icon to setup',
+        'statsTimeout': 'Stats timeout, please try again later',
+        'fetchStatsFailed': 'Failed to fetch stats',
+        'alertConfigServer': 'Please click the extension icon to configure the server address'
+      }
+    };
     this.init();
   }
 
   async init() {
     await this.loadServerUrl();
+    await this.loadLocale();
     this.detectRepository();
     this.createWidget();
     this.setupMessageListener();
@@ -24,6 +54,19 @@ class GitHubStatsWidget {
         resolve();
       });
     });
+  }
+
+  async loadLocale() {
+    return new Promise((resolve) => {
+      chrome.storage.sync.get(['locale'], (result) => {
+        this.locale = result.locale || 'zh';
+        resolve();
+      });
+    });
+  }
+
+  t(key) {
+    return this.messages[this.locale][key] || this.messages['zh'][key] || key;
   }
 
   detectRepository() {
@@ -135,39 +178,39 @@ class GitHubStatsWidget {
       loading: `
         <div class="title">
           <span class="icon"></span>
-          代码统计
+          ${this.t('codeStats')}
         </div>
-        <div class="stats loading">正在统计中...</div>
-        <div class="click-hint">点击查看详情</div>
+        <div class="stats loading">${this.t('analyzing')}</div>
+        <div class="click-hint">${this.t('clickForDetails')}</div>
       `,
       success: `
         <div class="title">
           <span class="icon"></span>
-          代码统计
+          ${this.t('codeStats')}
         </div>
         <div class="stats">
           <div class="lines-count">${data?.totalLines?.toLocaleString() || '0'}</div>
-          <div>行代码</div>
+          <div>${this.t('linesOfCode')}</div>
         </div>
-        <div class="click-hint">点击查看详情</div>
+        <div class="click-hint">${this.t('clickForDetails')}</div>
       `,
       error: `
         <div class="title">
           <span class="icon"></span>
-          代码统计
+          ${this.t('codeStats')}
         </div>
         <div class="stats error">
-          ${data || '获取失败'}
+          ${data || this.t('fetchFailed')}
         </div>
-        <div class="click-hint">点击重试</div>
+        <div class="click-hint">${this.t('clickToRetry')}</div>
       `,
       noServer: `
         <div class="title">
           <span class="icon"></span>
-          代码统计
+          ${this.t('codeStats')}
         </div>
-        <div class="stats error">请先配置服务器</div>
-        <div class="click-hint">点击插件图标设置</div>
+        <div class="stats error">${this.t('configureServer')}</div>
+        <div class="click-hint">${this.t('clickToConfig')}</div>
       `
     };
 
@@ -271,7 +314,7 @@ class GitHubStatsWidget {
           setTimeout(poll, delay);
         } else {
           // 超时
-          this.updateWidgetContent('error', '统计超时，请稍后重试');
+          this.updateWidgetContent('error', this.t('statsTimeout') || '统计超时，请稍后重试');
         }
         
       } catch (error) {
@@ -279,7 +322,7 @@ class GitHubStatsWidget {
         if (attempts < maxAttempts) {
           setTimeout(poll, 5000); // 5秒后重试
         } else {
-          this.updateWidgetContent('error', '获取统计失败');
+          this.updateWidgetContent('error', this.t('fetchStatsFailed') || '获取统计失败');
         }
       }
     };
@@ -291,7 +334,7 @@ class GitHubStatsWidget {
   openStatsPage() {
     if (!this.serverUrl) {
       // 如果没有配置服务器，提示用户配置
-      alert('请先点击插件图标配置服务器地址');
+      alert(this.t('alertConfigServer') || '请先点击插件图标配置服务器地址');
       return;
     }
 
@@ -370,6 +413,13 @@ class GitHubStatsWidget {
         if (this.currentRepo && this.widget) {
           this.updateWidgetContent('loading');
           this.fetchStats();
+        }
+      } else if (message.action === 'localeChanged') {
+        this.locale = message.locale;
+        
+        // 重新创建widget以应用新语言
+        if (this.currentRepo) {
+          this.createWidget();
         }
       }
     });

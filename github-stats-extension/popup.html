@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <script src="i18n.js"></script>
   <style>
     body {
       width: 300px;
@@ -107,27 +108,74 @@
       color: #333;
       word-break: break-all;
     }
+    .language-selector {
+      background: #f8f9fa;
+      border: 1px solid #e1e4e8;
+      border-radius: 4px;
+      padding: 10px;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    .language-label {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+    .language-buttons {
+      display: flex;
+      gap: 5px;
+      justify-content: center;
+    }
+    .lang-btn {
+      flex: none;
+      padding: 4px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      background: white;
+      color: #666;
+    }
+    .lang-btn.active {
+      background: #0969da;
+      color: white;
+      border-color: #0969da;
+    }
+    .lang-btn:hover {
+      background: #e5e7eb;
+    }
+    .lang-btn.active:hover {
+      background: #0860ca;
+    }
   </style>
 </head>
 <body>
   <div class="header">
-    <div class="title">GitHub代码统计</div>
-    <div class="subtitle">配置统计服务器地址</div>
+    <div class="title" data-i18n="title">GitHub代码统计</div>
+    <div class="subtitle" data-i18n="subtitle">配置统计服务器地址</div>
+  </div>
+  
+  <div class="language-selector">
+    <div class="language-label" data-i18n="languageSettings">语言设置</div>
+    <div class="language-buttons">
+      <button id="langZh" class="lang-btn active">中文</button>
+      <button id="langEn" class="lang-btn">English</button>
+    </div>
   </div>
 
   <div class="current-server">
-    <div class="label">当前服务器:</div>
-    <div class="value" id="currentServer">未设置</div>
+    <div class="label" data-i18n="currentServer">当前服务器:</div>
+    <div class="value" id="currentServer" data-i18n="notSet">未设置</div>
   </div>
 
   <div class="form-group">
-    <label for="serverUrl">服务器地址:</label>
+    <label for="serverUrl" data-i18n="serverAddress">服务器地址:</label>
     <input type="url" id="serverUrl" placeholder="http://localhost:5000" />
   </div>
 
   <div class="button-group">
-    <button id="saveBtn" class="btn-primary">保存</button>
-    <button id="testBtn" class="btn-secondary">测试连接</button>
+    <button id="saveBtn" class="btn-primary" data-i18n="save">保存</button>
+    <button id="testBtn" class="btn-secondary" data-i18n="testConnection">测试连接</button>
   </div>
 
   <div id="status" class="status" style="display: none;"></div>

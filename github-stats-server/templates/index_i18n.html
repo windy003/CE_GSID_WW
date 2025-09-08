@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale() }}">
+<head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-CMEDSKPXBP"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-CMEDSKPXBP');
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ t('title') }}</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="./180x180.png">
+    <link rel="icon" href="./180x180.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        .language-switcher {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .lang-btn {
+            padding: 6px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            color: #374151;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .lang-btn:hover {
+            background: #f3f4f6;
+        }
+
+        .lang-btn.active {
+            background: #0969da;
+            color: white;
+            border-color: #0969da;
+        }
+
+        .logo {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #24292f;
+            margin-bottom: 12px;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: #656d76;
+            margin-bottom: 40px;
+            line-height: 1.5;
+        }
+
+        .input-group {
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #24292f;
+            margin-bottom: 8px;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #d1d9e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .input-field:focus {
+            border-color: #0969da;
+            box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
+        }
+
+        .input-field::placeholder {
+            color: #8c959f;
+        }
+
+        .analyze-button {
+            width: 100%;
+            background: linear-gradient(135deg, #0969da 0%, #0550ae 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 16px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .analyze-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px rgba(9, 105, 218, 0.3);
+        }
+
+        .analyze-button:active {
+            transform: translateY(0);
+        }
+
+        .analyze-button:disabled {
+            background: #d1d9e0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .status {
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-weight: 500;
+            display: none;
+        }
+
+        .status.loading {
+            background: #e6f3ff;
+            border: 1px solid #0969da;
+            color: #0969da;
+            display: block;
+        }
+
+        .status.error {
+            background: #ffebee;
+            border: 1px solid #d32f2f;
+            color: #d32f2f;
+            display: block;
+        }
+
+        .status.success {
+            background: #e8f5e8;
+            border: 1px solid #28a745;
+            color: #28a745;
+            display: block;
+        }
+
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: left;
+            display: none;
+        }
+
+        .results h3 {
+            color: #24292f;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e1e4e8;
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            font-weight: 500;
+            color: #656d76;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #24292f;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                padding: 20px;
+            }
+
+            .language-switcher {
+                position: static;
+                justify-content: center;
+                margin-bottom: 20px;
+            }
+
+            .title {
+                font-size: 24px;
+            }
+
+            .logo {
+                font-size: 36px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="language-switcher">
+        <a href="?lang=zh" class="lang-btn {{ 'active' if get_locale() == 'zh' else '' }}">{{ t('chinese') }}</a>
+        <a href="?lang=en" class="lang-btn {{ 'active' if get_locale() == 'en' else '' }}">{{ t('english') }}</a>
+    </div>
+
+    <div class="container">
+        <div class="logo">📊</div>
+        <h1 class="title">{{ t('title') }}</h1>
+        <p class="subtitle">{{ t('subtitle') }}</p>
+        
+        <form id="analyzeForm">
+            <div class="input-group">
+                <label class="input-label" for="owner">{{ t('owner_label') }}</label>
+                <input type="text" id="owner" name="owner" class="input-field" 
+                       placeholder="{{ t('owner_placeholder') }}" required>
+            </div>
+            
+            <div class="input-group">
+                <label class="input-label" for="repo">{{ t('repo_label') }}</label>
+                <input type="text" id="repo" name="repo" class="input-field" 
+                       placeholder="{{ t('repo_placeholder') }}" required>
+            </div>
+            
+            <button type="submit" class="analyze-button" id="analyzeBtn">
+                {{ t('analyze_button') }}
+            </button>
+        </form>
+        
+        <div id="status" class="status"></div>
+        <div id="results" class="results"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('analyzeForm');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const statusDiv = document.getElementById('status');
+        const resultsDiv = document.getElementById('results');
+
+        // 翻译对象 (从服务器传递)
+        const translations = {
+            analyzing: '{{ t("analyzing") }}',
+            error_invalid_params: '{{ t("error_invalid_params") }}',
+            error_repo_not_found: '{{ t("error_repo_not_found") }}',
+            error_analysis_failed: '{{ t("error_analysis_failed") }}',
+            total_lines: '{{ t("total_lines") }}',
+            total_files: '{{ t("total_files") }}',
+            languages: '{{ t("languages") }}',
+            analysis_complete: '{{ t("analysis_complete") }}',
+            analyze_button: '{{ t("analyze_button") }}'
+        };
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const owner = document.getElementById('owner').value.trim();
+            const repo = document.getElementById('repo').value.trim();
+            
+            if (!owner || !repo) {
+                showStatus('error', translations.error_invalid_params);
+                return;
+            }
+            
+            analyzeRepository(owner, repo);
+        });
+
+        function showStatus(type, message) {
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+            if (type === 'loading' || type === 'error') {
+                resultsDiv.style.display = 'none';
+            }
+        }
+
+        function analyzeRepository(owner, repo) {
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = translations.analyzing;
+            showStatus('loading', translations.analyzing);
+
+            const repoUrl = `https://github.com/${owner}/${repo}`;
+            
+            fetch('/analyze', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    repo_url: repoUrl,
+                    owner: owner,
+                    repo: repo
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showStatus('error', data.error);
+                } else {
+                    pollForResults(data.task_id, owner, repo);
+                }
+            })
+            .catch(error => {
+                showStatus('error', translations.error_analysis_failed);
+            })
+            .finally(() => {
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = translations.analyze_button;
+            });
+        }
+
+        function pollForResults(taskId, owner, repo) {
+            const maxAttempts = 60; // 最多等待5分钟
+            let attempts = 0;
+
+            const poll = () => {
+                attempts++;
+                
+                fetch(`/stats?owner=${owner}&repo=${repo}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.ready) {
+                        showResults(data);
+                    } else if (attempts < maxAttempts) {
+                        setTimeout(poll, 5000); // 5秒后重试
+                    } else {
+                        showStatus('error', translations.error_analysis_failed);
+                    }
+                })
+                .catch(error => {
+                    if (attempts < maxAttempts) {
+                        setTimeout(poll, 5000);
+                    } else {
+                        showStatus('error', translations.error_analysis_failed);
+                    }
+                });
+            };
+
+            setTimeout(poll, 2000); // 2秒后开始轮询
+        }
+
+        function showResults(data) {
+            showStatus('success', translations.analysis_complete);
+            
+            let html = `<h3>${translations.languages}</h3>`;
+            
+            // 显示总行数和文件数
+            html += `<div class="stat-row">
+                <span class="stat-label">${translations.total_lines}</span>
+                <span class="stat-value">${data.totalLines.toLocaleString()}</span>
+            </div>`;
+            
+            html += `<div class="stat-row">
+                <span class="stat-label">${translations.total_files}</span>
+                <span class="stat-value">${data.totalFiles.toLocaleString()}</span>
+            </div>`;
+            
+            // 显示语言统计
+            if (data.languages) {
+                Object.entries(data.languages).forEach(([lang, lines]) => {
+                    html += `<div class="stat-row">
+                        <span class="stat-label">${lang}</span>
+                        <span class="stat-value">${lines.toLocaleString()}</span>
+                    </div>`;
+                });
+            }
+            
+            resultsDiv.innerHTML = html;
+            resultsDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

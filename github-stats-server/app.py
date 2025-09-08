@@ -9,9 +9,14 @@ from collections import defaultdict
 import json
 from pathlib import Path
 import re
+from i18n import i18n
 
 app = Flask(__name__, static_folder='.', static_url_path='')
+app.secret_key = 'github_stats_secret_key_2023'  # 用于session
 CORS(app)
+
+# 初始化国际化
+i18n.init_app(app)
 
 # 移除缓存机制，每次都重新统计
 
@@ -327,9 +332,16 @@ def health_check():
 @app.route('/')
 def index():
     """主页"""
-    import os
-    with open(os.path.join(os.path.dirname(__file__), 'index.html'), 'r', encoding='utf-8') as f:
-        return f.read()
+    # 检查是否存在国际化模板
+    template_path = os.path.join(os.path.dirname(__file__), 'templates', 'index_i18n.html')
+    if os.path.exists(template_path):
+        # 使用国际化模板
+        from flask import render_template
+        return render_template('index_i18n.html')
+    else:
+        # 回退到原始index.html
+        with open(os.path.join(os.path.dirname(__file__), 'index.html'), 'r', encoding='utf-8') as f:
+            return f.read()
 
 @app.route('/test.html')
 def test_page():
