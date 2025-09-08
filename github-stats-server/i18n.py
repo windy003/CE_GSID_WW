@@ -62,7 +62,14 @@ class I18n:
             'chinese': '中文',
             'english': 'English',
             'recent_analysis': '最近分析',
-            'no_recent_analysis': '暂无分析记录'
+            'no_recent_analysis': '暂无分析记录',
+            'file_structure': '文件结构',
+            'folder': '文件夹',
+            'file': '文件',
+            'lines': '行',
+            'root_directory': '根目录',
+            'expand_folder': '展开文件夹',
+            'collapse_folder': '收缩文件夹'
         }
         
         en_translations = {
@@ -87,7 +94,14 @@ class I18n:
             'chinese': '中文',
             'english': 'English',
             'recent_analysis': 'Recent Analysis',
-            'no_recent_analysis': 'No recent analysis records'
+            'no_recent_analysis': 'No recent analysis records',
+            'file_structure': 'File Structure',
+            'folder': 'Folder',
+            'file': 'File',
+            'lines': 'lines',
+            'root_directory': 'Root Directory',
+            'expand_folder': 'Expand folder',
+            'collapse_folder': 'Collapse folder'
         }
         
         # 写入翻译文件

@@ -493,13 +493,16 @@ def analyze_repository():
             # 生成语言统计（从文件类型统计转换）
             languages = convert_file_types_to_languages(stats['file_type_stats'])
             
-            # 直接返回结果
+            # 直接返回结果，包含完整数据
             return jsonify({
                 'task_id': task_id,
                 'ready': True,
                 'totalLines': stats['total_lines'],
                 'totalFiles': stats['total_files'],
                 'languages': languages,
+                'fileStats': stats['file_stats'],
+                'folderStats': stats['folder_stats'],
+                'fileTypeStats': dict(stats['file_type_stats']),
                 'message': i18n.t('analysis_complete')
             })
             

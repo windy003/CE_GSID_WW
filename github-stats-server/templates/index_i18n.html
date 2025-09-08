@@ -191,14 +191,55 @@
 
         .results {
             margin-top: 30px;
-            padding: 20px;
-            background: #f8f9fa;
+            padding: 0;
+            background: transparent;
             border-radius: 8px;
             text-align: left;
             display: none;
         }
 
-        .results h3 {
+        .results-tabs {
+            display: flex;
+            border-bottom: 2px solid #e1e4e8;
+            margin-bottom: 20px;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #656d76;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-button.active {
+            color: #0969da;
+            border-bottom-color: #0969da;
+            background: rgba(9, 105, 218, 0.05);
+        }
+
+        .tab-button:hover {
+            color: #0969da;
+            background: rgba(9, 105, 218, 0.05);
+        }
+
+        .tab-content {
+            display: none;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .tab-content h3 {
             color: #24292f;
             margin-bottom: 15px;
             font-size: 18px;
@@ -224,6 +265,91 @@
             font-weight: 600;
             color: #24292f;
         }
+
+        .file-browser {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+        }
+
+        .breadcrumb {
+            padding: 12px 16px;
+            background: #f6f8fa;
+            border-bottom: 1px solid #e1e4e8;
+            font-size: 14px;
+            color: #656d76;
+        }
+
+        .breadcrumb a {
+            color: #0969da;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .breadcrumb .separator {
+            margin: 0 8px;
+            color: #8c959f;
+        }
+
+        .file-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 16px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .file-item:hover {
+            background: #f6f8fa;
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-icon {
+            width: 20px;
+            margin-right: 12px;
+            font-size: 14px;
+            color: #656d76;
+        }
+
+        .file-name {
+            flex: 1;
+            font-size: 14px;
+            color: #24292f;
+        }
+
+        .file-stats {
+            font-size: 12px;
+            color: #8c959f;
+            margin-left: 12px;
+        }
+
+        .folder-icon {
+            color: #54a3ff;
+        }
+
+        .file-icon.js { color: #f1e05a; }
+        .file-icon.py { color: #3572a5; }
+        .file-icon.html { color: #e34c26; }
+        .file-icon.css { color: #563d7c; }
+        .file-icon.json { color: #292929; }
+        .file-icon.md { color: #083fa1; }
+        .file-icon.yml, .file-icon.yaml { color: #cb171e; }
+        .file-icon.txt { color: #89e051; }
 
         @media (max-width: 768px) {
             .container {
@@ -291,7 +417,12 @@
             total_files: '{{ t("total_files") }}',
             languages: '{{ t("languages") }}',
             analysis_complete: '{{ t("analysis_complete") }}',
-            analyze_button: '{{ t("analyze_button") }}'
+            analyze_button: '{{ t("analyze_button") }}',
+            file_structure: '{{ t("file_structure") }}',
+            folder: '{{ t("folder") }}',
+            file: '{{ t("file") }}',
+            lines: '{{ t("lines") }}',
+            root_directory: '{{ t("root_directory") }}'
         };
 
         form.addEventListener('submit', function(e) {
@@ -411,10 +542,188 @@
             setTimeout(poll, 2000); // 2秒后开始轮询
         }
 
+        // 全局变量用于存储结果数据
+        let currentResults = null;
+        let currentFolder = '';
+
         function showResults(data) {
             showStatus('success', translations.analysis_complete);
+            currentResults = data;
             
-            let html = `<h3>${translations.languages}</h3>`;
+            let html = `
+                <div class="results-tabs">
+                    <button class="tab-button active" onclick="showTab('overview')">${translations.languages}</button>
+                    <button class="tab-button" onclick="showTab('files')">${translations.file_structure || 'File Structure'}</button>
+                </div>
+                
+                <div id="overview-tab" class="tab-content active">
+                    <h3>${translations.languages}</h3>
+                    ${generateOverviewHTML(data)}
+                </div>
+                
+                <div id="files-tab" class="tab-content">
+                    <h3>${translations.file_structure || 'File Structure'}</h3>
+                    ${generateFileBrowserHTML(data)}
+                </div>
+            `;
+            
+            resultsDiv.innerHTML = html;
+            resultsDiv.style.display = 'block';
+            
+            // 初始化文件浏览器
+            if (data.fileStats && data.folderStats) {
+                setTimeout(() => {
+                    initializeFileBrowser(data);
+                    renderFileList();
+                }, 100);
+            }
+        }
+
+        function initializeFileBrowser(data) {
+            currentResults = data;
+            currentFolder = '';
+        }
+
+        function navigateToFolder(folderPath) {
+            currentFolder = folderPath;
+            updateBreadcrumb();
+            renderFileList();
+        }
+
+        function updateBreadcrumb() {
+            const breadcrumb = document.getElementById('breadcrumb');
+            if (!breadcrumb) return;
+            
+            let html = `<a onclick="navigateToFolder('')">${translations.root_directory}</a>`;
+            
+            if (currentFolder) {
+                const pathParts = currentFolder.split('/');
+                let currentPath = '';
+                
+                for (let i = 0; i < pathParts.length; i++) {
+                    currentPath += (i > 0 ? '/' : '') + pathParts[i];
+                    html += ' <span class="separator">/</span> ';
+                    html += `<a onclick="navigateToFolder('${currentPath}')">${pathParts[i]}</a>`;
+                }
+            }
+            
+            breadcrumb.innerHTML = html;
+        }
+
+        function renderFileList() {
+            const fileList = document.getElementById('fileList');
+            if (!fileList || !currentResults) return;
+            
+            let html = '';
+            
+            // 添加返回上级目录按钮（如果不在根目录）
+            if (currentFolder) {
+                const parentFolder = currentFolder.includes('/') 
+                    ? currentFolder.substring(0, currentFolder.lastIndexOf('/'))
+                    : '';
+                html += `
+                    <li class="file-item" onclick="navigateToFolder('${parentFolder}')">
+                        <span class="file-icon folder-icon">📁</span>
+                        <span class="file-name">..</span>
+                        <span class="file-stats">返回上级</span>
+                    </li>
+                `;
+            }
+            
+            // 显示文件夹
+            const folders = getFoldersInCurrentDirectory();
+            folders.forEach(folder => {
+                const folderInfo = currentResults.folderStats[folder.path] || {};
+                html += `
+                    <li class="file-item" onclick="navigateToFolder('${folder.path}')">
+                        <span class="file-icon folder-icon">📁</span>
+                        <span class="file-name">${folder.name}</span>
+                        <span class="file-stats">${folderInfo.files || 0} files, ${(folderInfo.lines || 0).toLocaleString()} lines</span>
+                    </li>
+                `;
+            });
+            
+            // 显示文件
+            const files = getFilesInCurrentDirectory();
+            files.forEach(file => {
+                const fileInfo = currentResults.fileStats[file.path] || {};
+                const icon = getFileIcon(file.name);
+                html += `
+                    <li class="file-item">
+                        <span class="file-icon ${getFileTypeClass(file.name)}">${icon}</span>
+                        <span class="file-name">${file.name}</span>
+                        <span class="file-stats">${(fileInfo.lines || 0).toLocaleString()} lines</span>
+                    </li>
+                `;
+            });
+            
+            fileList.innerHTML = html;
+        }
+
+        function getFoldersInCurrentDirectory() {
+            if (!currentResults.folderStats) return [];
+            
+            const folders = [];
+            Object.keys(currentResults.folderStats).forEach(path => {
+                if (path === '.') return; // 跳过根目录
+                
+                const parentPath = path.includes('/') ? path.substring(0, path.lastIndexOf('/')) : '';
+                if (parentPath === currentFolder) {
+                    const name = path.substring(path.lastIndexOf('/') + 1);
+                    folders.push({ name, path });
+                }
+            });
+            
+            return folders.sort((a, b) => a.name.localeCompare(b.name));
+        }
+
+        function getFilesInCurrentDirectory() {
+            if (!currentResults.fileStats) return [];
+            
+            const files = [];
+            Object.keys(currentResults.fileStats).forEach(path => {
+                const parentPath = path.includes('/') ? path.substring(0, path.lastIndexOf('/')) : '';
+                if (parentPath === currentFolder) {
+                    const name = path.substring(path.lastIndexOf('/') + 1);
+                    files.push({ name, path });
+                }
+            });
+            
+            return files.sort((a, b) => a.name.localeCompare(b.name));
+        }
+
+        function getFileIcon(filename) {
+            const ext = filename.substring(filename.lastIndexOf('.') + 1).toLowerCase();
+            const icons = {
+                js: '📄', py: '🐍', html: '🌐', css: '🎨', json: '📊',
+                md: '📝', txt: '📄', yml: '⚙️', yaml: '⚙️', sh: '💻',
+                jpg: '🖼️', png: '🖼️', gif: '🖼️', svg: '🖼️',
+                pdf: '📕', zip: '📦', tar: '📦', gz: '📦'
+            };
+            return icons[ext] || '📄';
+        }
+
+        function getFileTypeClass(filename) {
+            const ext = filename.substring(filename.lastIndexOf('.') + 1).toLowerCase();
+            return ext;
+        }
+
+        function showTab(tabName) {
+            // 隐藏所有tab
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // 显示选中tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function generateOverviewHTML(data) {
+            let html = '';
             
             // 显示总行数和文件数
             html += `<div class="stat-row">
@@ -437,8 +746,18 @@
                 });
             }
             
-            resultsDiv.innerHTML = html;
-            resultsDiv.style.display = 'block';
+            return html;
+        }
+
+        function generateFileBrowserHTML(data) {
+            return `
+                <div class="file-browser">
+                    <div class="breadcrumb" id="breadcrumb">
+                        <a onclick="navigateToFolder('')">${translations.root_directory || 'Root Directory'}</a>
+                    </div>
+                    <ul class="file-list" id="fileList"></ul>
+                </div>
+            `;
         }
     </script>
 </body>
